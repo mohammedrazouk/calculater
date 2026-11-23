@@ -105,6 +105,9 @@ th, td { border: 1px solid var(--border-color); padding: 4px 8px; text-align: ce
   text-align: center;
   outline: none;
   appearance: textfield;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 .fees-table input::-webkit-inner-spin-button,
 .fees-table input::-webkit-outer-spin-button { appearance: none; margin: 0; }
@@ -146,12 +149,45 @@ th, td { border: 1px solid var(--border-color); padding: 4px 8px; text-align: ce
 
 .under-construction { display: none; flex-direction: column; align-items: center; justify-content: center; height: 60vh; text-align: center; color: #6c757d; }
 .under-construction h2 { font-size: 32px; color: var(--main-color); margin-bottom: 15px; }
+.model-section[data-under-development="true"] {
+  position: relative;
+}
+
+.development-overlay {
+  position: absolute;
+  inset: 80px 0 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+  background: rgba(240, 242, 245, 0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: auto;
+  margin-top: 50px;
+}
+
+.development-overlay-box {
+  min-width: 280px;
+  padding: 18px 32px;
+  border: 2px solid var(--accent-color);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--main-color);
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
 
 .footer { text-align: center; padding: 20px; margin-top: auto; color: #6c757d; font-size: 14px; border-top: 1px solid #ddd; }
 .footer .en { font-size: 12px; font-family: monospace; margin-top: 5px; direction: ltr; }
 
 @media (max-width: 700px) {
   .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main-menu,
+  .footer { display: none !important; }
 }
 
 @media (max-width: 480px) {
@@ -160,6 +196,7 @@ th, td { border: 1px solid var(--border-color); padding: 4px 8px; text-align: ce
 
 @media print {
   body { background: #fff; padding: 0; }
+  .development-overlay { display: none !important; }
   .main-menu, .input-section, .print-controls, .back-btn, .footer, .under-construction { display: none !important; }
   .model-section { display: none !important; }
   .model-section.active { display: block !important; }

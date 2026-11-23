@@ -1,18 +1,19 @@
 const modelTitles = {
   model1: 'البيع القطعي',
   model2: 'البيع القطعي مع تصحيح الأوصاف',
-  model3: 'الانتقال'
+  model3: 'الانتقال',
+  model4: 'الانتقال والبيع'
 };
 
 function getModelField(section, fieldId) {
-  const suffix = { model1: '', model2: '2', model3: '3' }[section.id];
+  const suffix = { model1: '', model2: '2', model3: '3', model4: '4' }[section.id];
   return section.querySelector(`#${fieldId}${suffix}`);
 }
 
 function createModelClone(modelId) {
   const original = document.getElementById('model1');
   const model = original.cloneNode(true);
-  const suffix = { model2: '2', model3: '3' }[modelId];
+  const suffix = { model2: '2', model3: '3', model4: '4' }[modelId];
   model.id = modelId;
   model.querySelectorAll('[id]').forEach(element => {
     element.id += suffix;
@@ -27,7 +28,15 @@ function createAdditionalModels() {
   getModelField(correctionModel, 'val_req').value = '12';
   const transitionModel = createModelClone('model3');
   transitionModel.dataset.modelType = 'transition';
-  original.after(correctionModel, transitionModel);
+  const transferAndSaleModel = createModelClone('model4');
+  transferAndSaleModel.dataset.modelType = 'transition';
+  transferAndSaleModel.dataset.underDevelopment = 'true';
+  const developmentOverlay = document.createElement('div');
+  developmentOverlay.className = 'development-overlay';
+  developmentOverlay.setAttribute('aria-label', 'قيد الإنشاء والتعديل');
+  developmentOverlay.innerHTML = '<div class="development-overlay-box">قيد الإنشاء والتعديل</div>';
+  transferAndSaleModel.appendChild(developmentOverlay);
+  original.after(correctionModel, transitionModel, transferAndSaleModel);
 }
 
 function showModel(modelId) {
@@ -58,6 +67,10 @@ function goHome() {
 document.addEventListener('DOMContentLoaded', () => {
   createAdditionalModels();
   const today = new Date().toISOString().split('T')[0];
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.lang = 'en';
+    input.dir = 'ltr';
+  });
   document.querySelectorAll('.model-section input[type="date"]').forEach(input => {
     input.value = today;
   });
@@ -73,6 +86,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.querySelectorAll('[data-go-home]').forEach(button => {
     button.addEventListener('click', goHome);
+  });
+
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', () => {
+      input.value = input.value
+        .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
+    });
   });
 
   document.querySelectorAll('.model-section').forEach(section => {
@@ -131,7 +152,7 @@ function tafqeet(number) {
 function calculate(section) {
   const area = parseFloat(getModelField(section, 'area').value) || 0;
   const price = parseFloat(getModelField(section, 'price').value) || 0;
-  const transition = section.id === 'model3';
+  const transition = section.id === 'model3' || section.id === 'model4';
   let financialRate = 0.05;
   if (transition) {
     const deathYear = Number(getModelField(section, 'deathYear').value);
@@ -147,6 +168,33 @@ function calculate(section) {
   const n2 = n1 * 0.10;
   const correction = section.id === 'model2';
   const saleFee = Math.ceil(n1 + n2);
+
+  if (section.id === 'model4') {
+    // Calculation of the exact sale form
+    const saleN3 = saleFee * 0.05;
+    const saleN4 = saleN3 * 0.10;
+    const saleFinancialFee = Math.ceil(saleN3 + saleN4);
+    const saleF1 = saleFee * 0.10;
+    const saleF2 = saleFinancialFee * 0.05;
+    const saleLocalAdminFee = Math.ceil(saleF1 + saleF2 + 1);
+
+    // Calculation of the exact transfer form using the transfer financial rate
+    const transferN3 = saleFee * financialRate;
+    const transferN4 = transferN3 * 0.10;
+    const transferFinancialFee = Math.ceil(transferN3 + transferN4);
+    const transferF1 = saleFee * 0.10;
+    const transferF2 = transferFinancialFee * 0.05;
+    const transferLocalAdminFee = Math.ceil(transferF1 + transferF2 + 1);
+
+    setValue(section, 'val_sale', saleFee);
+    setValue(section, 'val_transfer', saleFee);
+    setValue(section, 'val_req', 12);
+    setValue(section, 'val_financial', saleFinancialFee + transferFinancialFee);
+    setValue(section, 'val_local', saleLocalAdminFee + transferLocalAdminFee);
+    calcTotals(section);
+    return;
+  }
+
   const n3 = saleFee * financialRate;
   const n4 = n3 * 0.10;
   const financialFee = Math.ceil(n3 + n4);
@@ -154,7 +202,13 @@ function calculate(section) {
   const f2 = financialFee * 0.05;
   const localAdminFee = Math.ceil(f1 + f2 + 1);
 
-  setValue(section, 'val_sale', saleFee + (correction ? 11 : 0));
+  if (section.id === 'model3') {
+    setValue(section, 'q_sale', 0);
+    setValue(section, 'val_sale', 0);
+    setValue(section, 'val_transfer', saleFee);
+  } else {
+    setValue(section, 'val_sale', saleFee + (correction ? 11 : 0));
+  }
   setValue(section, 'val_financial', financialFee + (correction ? 2 : 0));
   setValue(section, 'val_local', localAdminFee + (correction ? 3 : 0));
   calcTotals(section);
@@ -169,12 +223,24 @@ function setValue(section, id, val) {
 
 function calcTotals(section) {
   const getVal = (id) => Math.ceil(parseFloat(getModelField(section, id).value) || 0);
+  const combinedInvoices = section.id === 'model4';
   const sale = getVal('val_sale');
   const transfer = getVal('val_transfer');
-  const req = getVal('val_req');
-  const stamps = 16;
-  const bonds = getVal('val_bonds');
-  const contract = 35;
+  const req = combinedInvoices ? 12 : getVal('val_req');
+  const stamps = combinedInvoices ? 32 : 16;
+  const bonds = getVal('val_bonds') * (combinedInvoices ? 2 : 1);
+  const contract = combinedInvoices ? 70 : 35;
+
+  const feesTable = section.querySelector('.fees-table');
+  if (feesTable) {
+    feesTable.querySelectorAll('tbody tr').forEach(row => {
+      const type = row.querySelector('.col-type');
+      if (!type) return;
+      const cells = row.querySelectorAll('td');
+      if (type.textContent.trim() === 'طوابع') cells[1].textContent = stamps;
+      if (type.textContent.trim() === 'ثمن محضر العقد') cells[1].textContent = contract;
+    });
+  }
   const totalFees = sale + transfer + req + stamps + bonds + contract;
   const financial = getVal('val_financial');
   const localAdmin = getVal('val_local');
