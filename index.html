@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>النماذج العقارية</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 1. الصفحة الرئيسية -->
+  <div class="main-menu" id="mainMenu">
+    <h1>اختر النموذج المطلوب</h1>
+    <div class="menu-grid">
+      <button class="menu-btn" data-model="model1">البيع القطعي</button>
+      <button class="menu-btn" data-model="model2">البيع القطعي مع تصحيح الأوصاف</button>
+      <button class="menu-btn" data-model="model3">الانتقال</button>
+      <button class="menu-btn" data-under-construction>الانتقال والبيع</button>
+      <button class="menu-btn" data-under-construction>الانتقال والبيع مع تصحيح الأوصاف</button>
+      <button class="menu-btn" data-under-construction>البيع الحكمي</button>
+    </div>
+  </div>
+
+  <!-- شاشة قيد الإنشاء -->
+  <div class="under-construction" id="underConstruction">
+    <button class="back-btn" data-go-home>← العودة للقائمة الرئيسية</button>
+    <h2>🚧 قيد الإنشاء</h2>
+    <p>هذا النموذج قيد التطوير وسيكون متاحاً قريباً جداً.</p>
+  </div>
+
+  <!-- 2. النموذج الأول: البيع القطعي -->
+  <div class="model-section" id="model1">
+    <h1 class="model-title">البيع القطعي</h1>
+    <button class="back-btn no-print" data-go-home>← العودة للقائمة الرئيسية</button>
+
+    <div class="input-section no-print">
+      <div class="input-group">
+        <label>المساحة</label>
+        <input type="number" id="area" step="any" placeholder="أدخل المساحة" lang="en" dir="ltr">
+      </div>
+      <div class="input-group">
+        <label>السعر</label>
+        <input type="number" id="price" step="any" placeholder="أدخل السعر" lang="en" dir="ltr">
+      </div>
+      <div class="input-group death-year-group">
+        <label for="deathYear">سنة الوفاة</label>
+        <input type="number" id="deathYear" class="death-year" min="1" step="1" placeholder="أدخل سنة الوفاة" lang="en" dir="ltr" required>
+      </div>
+      <button class="btn-calc" id="calculateBtn">احسب واملأ الفاتورة</button>
+    </div>
+
+    <div class="print-controls no-print">
+      <label>قياس الورق:</label>
+      <select id="paperSize">
+        <option value="A4">A4</option>
+        <option value="A3">A3</option>
+        <option value="A5">A5</option>
+        <option value="Letter">Letter</option>
+        <option value="Legal">Legal</option>
+      </select>
+      <button class="btn-print" id="printBtn">🖨️ طباعة الإرسالية</button>
+    </div>
+
+    <div class="invoice-container">
+      <div class="invoice-border">
+        
+        <table class="header-table">
+          <tr>
+            <td class="header-right">
+              الجمهورية العربية السورية<br>
+              المديرية العامة للمصالح العقارية<br>
+              المكتب العقاري المعاون في المعرة
+            </td>
+            <td class="header-left">
+              <div class="header-left-title">إرسالية الرسوم العقارية</div>
+              <div class="stamp-title">ورسم الطابع المالي</div>
+              <div class="header-left-row"><span>رقم الإرسالية:</span> <span>..........................................</span></div>
+              <div class="header-left-row"><span>رقم الجلد:</span> <span>......................... نموذج (11 /م.ع)</span></div>
+            </td>
+          </tr>
+        </table>
+
+        <table class="data-table">
+          <tr>
+            <td class="label">رقم المحضر :</td>
+            <td class="input-cell"><input type="text" id="caseNum"></td>
+            <td class="signature-cell" rowspan="4">
+              توقيع وخاتم رئيس المكتب المعاون
+            </td>
+          </tr>
+          <tr>
+            <td class="label">المنطقة العقارية :</td>
+            <td class="input-cell"><input type="text" id="zone"></td>
+          </tr>
+          <tr>
+            <td class="label">اسم دافع الرسم :</td>
+            <td class="input-cell"><input type="text" id="payerName"></td>
+          </tr>
+          <tr>
+            <td class="label">تاريخ تنظيم الإرسالية :</td>
+            <td class="input-cell"><input type="date" id="invoiceDate" lang="en" dir="ltr"></td>
+          </tr>
+        </table>
+
+        <div class="fees-title">الرسوم المدفوعة</div>
+
+        <table class="fees-table">
+          <thead>
+            <tr>
+              <th colspan="2">مقدار الرسم</th>
+              <th rowspan="2" class="col-type">نوع الرسم</th>
+              
+              <!-- خانة أمين الصندوق (النص العلوي فقط) -->
+              <th rowspan="2" class="col-desc">
+                <div class="desc-top">
+                  إن القيمة المبينة في هذه الإرسالية وقدرها:
+                </div>
+              </th>
+            </tr>
+            <tr>
+              <th class="col-q">ق</th>
+              <th class="col-ls">ل . س</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" id="q_sale" readonly value="0"></td>
+              <td><input type="text" id="val_sale" readonly></td>
+              <td class="col-type">رسم بيع وفراغ</td>
+              <!-- تم إرجاع النص السفلي إلى هنا ليبقى داخل الخلية -->
+              <td rowspan="11" class="treasury-cell">
+                <div class="desc-bottom">
+                  قرشًا سوريًا قد قبضت وأعطي مقابلها<br>
+                  الوصل ذو الرقم <span class="dotted-line"></span> المؤرخ<br>
+                  في <span class="dotted-line"></span> وعليه أعطي هذا البيان<br>
+                  <div class="treasurer-signature">أمين الصندوق</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="text" id="q_transfer" readonly value="0"></td>
+              <td><input type="number" id="val_transfer" lang="en" dir="ltr"></td>
+              <td class="col-type">رسم انتقال</td>
+            </tr>
+            <tr>
+              <td><input type="text" id="q_req" readonly value="0" lang="en" dir="ltr"></td>
+              <td><input type="text" id="val_req" value="6" inputmode="decimal" lang="en" dir="ltr"></td>
+              <td class="col-type">رسم الطلب</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td class="readonly-cell">16</td>
+              <td class="col-type">طوابع</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><input type="text" id="q_bonds" readonly value="0"></td>
+              <td><input type="number" id="val_bonds" lang="en" dir="ltr"></td>
+              <td class="col-type">ثمن السندات</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td class="readonly-cell">35</td>
+              <td class="col-type">ثمن محضر العقد</td>
+            </tr>
+            <tr>
+              <td class="readonly-cell" id="total_fees_q">0</td>
+              <td class="readonly-cell" id="total_fees_ls">0</td>
+              <td class="col-type">مجموع الرسوم العقارية</td>
+            </tr>
+            <tr>
+              <td><input type="text" id="q_financial" readonly value="0"></td>
+              <td><input type="text" id="val_financial" readonly></td>
+              <td class="col-type">رسم الطابع المالي</td>
+            </tr>
+            <tr>
+              <td><input type="text" id="q_local" readonly value="0"></td>
+              <td><input type="text" id="val_local" readonly></td>
+              <td class="col-type">رسم الإدارة المحلية</td>
+            </tr>
+            <tr>
+              <td class="readonly-cell" id="grand_total_q">0</td>
+              <td class="readonly-cell" id="grand_total_ls">0</td>
+              <td class="col-type">المجموع العام</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="tafqit-box" id="tafqit_result">................................</div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- الفوتر -->
+  <footer class="footer">
+    <div>تصميم وتطوير: محمد الرزوق</div>
+    <div class="en">Designed & Developed by Mohammed Al-Razzouq</div>
+  </footer>
+
+<script src="script.js"></script>
+</body>
+</html>

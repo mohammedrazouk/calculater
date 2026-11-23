@@ -1,0 +1,199 @@
+const modelTitles = {
+  model1: 'البيع القطعي',
+  model2: 'البيع القطعي مع تصحيح الأوصاف',
+  model3: 'الانتقال'
+};
+
+function getModelField(section, fieldId) {
+  const suffix = { model1: '', model2: '2', model3: '3' }[section.id];
+  return section.querySelector(`#${fieldId}${suffix}`);
+}
+
+function createModelClone(modelId) {
+  const original = document.getElementById('model1');
+  const model = original.cloneNode(true);
+  const suffix = { model2: '2', model3: '3' }[modelId];
+  model.id = modelId;
+  model.querySelectorAll('[id]').forEach(element => {
+    element.id += suffix;
+  });
+  model.querySelector('.model-title').textContent = modelTitles[modelId];
+  return model;
+}
+
+function createAdditionalModels() {
+  const original = document.getElementById('model1');
+  const correctionModel = createModelClone('model2');
+  getModelField(correctionModel, 'val_req').value = '12';
+  const transitionModel = createModelClone('model3');
+  transitionModel.dataset.modelType = 'transition';
+  original.after(correctionModel, transitionModel);
+}
+
+function showModel(modelId) {
+  document.getElementById('mainMenu').style.display = 'none';
+  document.getElementById('underConstruction').style.display = 'none';
+  const sections = document.querySelectorAll('.model-section');
+  sections.forEach(sec => sec.classList.remove('active'));
+  document.getElementById(modelId).classList.add('active');
+  document.title = modelTitles[modelId];
+}
+
+function showUnderConstruction() {
+  document.getElementById('mainMenu').style.display = 'none';
+  const sections = document.querySelectorAll('.model-section');
+  sections.forEach(sec => sec.classList.remove('active'));
+  document.getElementById('underConstruction').style.display = 'flex';
+  document.title = 'قيد الإنشاء';
+}
+
+function goHome() {
+  const sections = document.querySelectorAll('.model-section');
+  sections.forEach(sec => sec.classList.remove('active'));
+  document.getElementById('underConstruction').style.display = 'none';
+  document.getElementById('mainMenu').style.display = 'block';
+  document.title = 'النماذج العقارية';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  createAdditionalModels();
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelectorAll('.model-section input[type="date"]').forEach(input => {
+    input.value = today;
+  });
+  document.querySelectorAll('.death-year').forEach(input => {
+    input.max = String(new Date().getFullYear());
+  });
+
+  document.querySelectorAll('[data-model]').forEach(button => {
+    button.addEventListener('click', () => showModel(button.dataset.model));
+  });
+  document.querySelectorAll('[data-under-construction]').forEach(button => {
+    button.addEventListener('click', showUnderConstruction);
+  });
+  document.querySelectorAll('[data-go-home]').forEach(button => {
+    button.addEventListener('click', goHome);
+  });
+
+  document.querySelectorAll('.model-section').forEach(section => {
+    getModelField(section, 'calculateBtn').addEventListener('click', () => calculate(section));
+    getModelField(section, 'printBtn').addEventListener('click', () => window.print());
+    getModelField(section, 'paperSize').addEventListener('change', () => changePaper(section));
+    ['val_transfer', 'val_req', 'val_bonds'].forEach(id => {
+      getModelField(section, id).addEventListener('input', () => calcTotals(section));
+    });
+  });
+});
+
+window.addEventListener('afterprint', () => window.location.reload());
+
+function tafqeet(number) {
+  if (number === 0) return "صفر ليرة سورية";
+  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة", "عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+  const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+  const hundreds = ["", "مئة", "مئتان", "ثلاثمئة", "أربعمئة", "خمسمئة", "ستمئة", "سبعمئة", "ثمانمئة", "تسعمئة"];
+
+  function convertGroup(n) {
+    let parts = [];
+    if (n >= 100) { parts.push(hundreds[Math.floor(n / 100)]); n %= 100; }
+    if (n >= 20) {
+      const unit = n % 10;
+      const ten = Math.floor(n / 10);
+      if (unit > 0) { parts.push(ones[unit] + " و" + tens[ten]); } else { parts.push(tens[ten]); }
+    } else if (n > 0) { parts.push(ones[n]); }
+    return parts.join(" و");
+  }
+
+  const parts = [];
+  let num = Math.floor(number);
+  const millions = Math.floor(num / 1000000);
+  if (millions > 0) {
+    if (millions === 1) parts.push("مليون");
+    else if (millions === 2) parts.push("مليونان");
+    else if (millions >= 3 && millions <= 10) parts.push(convertGroup(millions) + " ملايين");
+    else parts.push(convertGroup(millions) + " مليون");
+    num %= 1000000;
+  }
+
+  const thousands = Math.floor(num / 1000);
+  if (thousands > 0) {
+    if (thousands === 1) parts.push("ألف");
+    else if (thousands === 2) parts.push("ألفان");
+    else if (thousands >= 3 && thousands <= 10) parts.push(convertGroup(thousands) + " آلاف");
+    else parts.push(convertGroup(thousands) + " ألف");
+    num %= 1000;
+  }
+
+  if (num > 0) parts.push(convertGroup(num));
+  return parts.join(" و") + " ليرة سورية";
+}
+
+function calculate(section) {
+  const area = parseFloat(getModelField(section, 'area').value) || 0;
+  const price = parseFloat(getModelField(section, 'price').value) || 0;
+  const transition = section.id === 'model3';
+  let financialRate = 0.05;
+  if (transition) {
+    const deathYear = Number(getModelField(section, 'deathYear').value);
+    if (!Number.isInteger(deathYear) || deathYear < 1 || deathYear > new Date().getFullYear()) {
+      alert('يرجى إدخال سنة وفاة صحيحة لا تتجاوز السنة الحالية.');
+      return;
+    }
+    financialRate = deathYear >= 2021 ? 0.15 : 0.15 / 3;
+  }
+
+  const r1 = area * price;
+  const n1 = r1 * 0.001;
+  const n2 = n1 * 0.10;
+  const correction = section.id === 'model2';
+  const saleFee = Math.ceil(n1 + n2);
+  const n3 = saleFee * financialRate;
+  const n4 = n3 * 0.10;
+  const financialFee = Math.ceil(n3 + n4);
+  const f1 = saleFee * 0.10;
+  const f2 = financialFee * 0.05;
+  const localAdminFee = Math.ceil(f1 + f2 + 1);
+
+  setValue(section, 'val_sale', saleFee + (correction ? 11 : 0));
+  setValue(section, 'val_financial', financialFee + (correction ? 2 : 0));
+  setValue(section, 'val_local', localAdminFee + (correction ? 3 : 0));
+  calcTotals(section);
+}
+
+function setValue(section, id, val) {
+  getModelField(section, id).value = val;
+  const qId = id.replace('val_', 'q_');
+  const qField = getModelField(section, qId);
+  if (qField) qField.value = 0;
+}
+
+function calcTotals(section) {
+  const getVal = (id) => Math.ceil(parseFloat(getModelField(section, id).value) || 0);
+  const sale = getVal('val_sale');
+  const transfer = getVal('val_transfer');
+  const req = getVal('val_req');
+  const stamps = 16;
+  const bonds = getVal('val_bonds');
+  const contract = 35;
+  const totalFees = sale + transfer + req + stamps + bonds + contract;
+  const financial = getVal('val_financial');
+  const localAdmin = getVal('val_local');
+  const grandTotal = totalFees + financial + localAdmin;
+
+  getModelField(section, 'total_fees_ls').textContent = totalFees;
+  getModelField(section, 'total_fees_q').textContent = 0;
+  getModelField(section, 'grand_total_ls').textContent = grandTotal;
+  getModelField(section, 'grand_total_q').textContent = 0;
+  getModelField(section, 'tafqit_result').textContent = tafqeet(grandTotal);
+}
+
+function changePaper(section) {
+  const size = getModelField(section, 'paperSize').value;
+  let style = document.getElementById('page-style');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'page-style';
+    document.head.appendChild(style);
+  }
+  style.textContent = `@page { size: ${size} portrait; margin: 10mm; }`;
+}
