@@ -2,18 +2,19 @@ const modelTitles = {
   model1: 'البيع القطعي',
   model2: 'البيع القطعي مع تصحيح الأوصاف',
   model3: 'الانتقال',
-  model4: 'الانتقال والبيع'
+  model4: 'الانتقال والبيع',
+  model5: 'الانتقال والبيع مع تصحيح الأوصاف'
 };
 
 function getModelField(section, fieldId) {
-  const suffix = { model1: '', model2: '2', model3: '3', model4: '4' }[section.id];
+  const suffix = { model1: '', model2: '2', model3: '3', model4: '4', model5: '5' }[section.id];
   return section.querySelector(`#${fieldId}${suffix}`);
 }
 
 function createModelClone(modelId) {
   const original = document.getElementById('model1');
   const model = original.cloneNode(true);
-  const suffix = { model2: '2', model3: '3', model4: '4' }[modelId];
+  const suffix = { model2: '2', model3: '3', model4: '4', model5: '5' }[modelId];
   model.id = modelId;
   model.querySelectorAll('[id]').forEach(element => {
     element.id += suffix;
@@ -30,13 +31,9 @@ function createAdditionalModels() {
   transitionModel.dataset.modelType = 'transition';
   const transferAndSaleModel = createModelClone('model4');
   transferAndSaleModel.dataset.modelType = 'transition';
-  transferAndSaleModel.dataset.underDevelopment = 'true';
-  const developmentOverlay = document.createElement('div');
-  developmentOverlay.className = 'development-overlay';
-  developmentOverlay.setAttribute('aria-label', 'قيد الإنشاء والتعديل');
-  developmentOverlay.innerHTML = '<div class="development-overlay-box">قيد الإنشاء والتعديل</div>';
-  transferAndSaleModel.appendChild(developmentOverlay);
-  original.after(correctionModel, transitionModel, transferAndSaleModel);
+  const correctedTransferAndSaleModel = createModelClone('model5');
+  correctedTransferAndSaleModel.dataset.modelType = 'transition';
+  original.after(correctionModel, transitionModel, transferAndSaleModel, correctedTransferAndSaleModel);
 }
 
 function showModel(modelId) {
@@ -71,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     input.lang = 'en';
     input.dir = 'ltr';
   });
+  document.querySelectorAll('.fees-table input').forEach(input => {
+    input.lang = 'en';
+    input.dir = 'ltr';
+  });
   document.querySelectorAll('.model-section input[type="date"]').forEach(input => {
     input.value = today;
   });
@@ -88,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', goHome);
   });
 
-  document.querySelectorAll('input[type="number"]').forEach(input => {
+  document.querySelectorAll('input[type="number"], input[inputmode="decimal"]').forEach(input => {
     input.addEventListener('input', () => {
       input.value = input.value
         .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
@@ -152,7 +153,7 @@ function tafqeet(number) {
 function calculate(section) {
   const area = parseFloat(getModelField(section, 'area').value) || 0;
   const price = parseFloat(getModelField(section, 'price').value) || 0;
-  const transition = section.id === 'model3' || section.id === 'model4';
+  const transition = section.id === 'model3' || section.id === 'model4' || section.id === 'model5';
   let financialRate = 0.05;
   if (transition) {
     const deathYear = Number(getModelField(section, 'deathYear').value);
@@ -166,10 +167,10 @@ function calculate(section) {
   const r1 = area * price;
   const n1 = r1 * 0.001;
   const n2 = n1 * 0.10;
-  const correction = section.id === 'model2';
+  const correction = section.id === 'model2' || section.id === 'model5';
   const saleFee = Math.ceil(n1 + n2);
 
-  if (section.id === 'model4') {
+  if (section.id === 'model4' || section.id === 'model5') {
     // Calculation of the exact sale form
     const saleN3 = saleFee * 0.05;
     const saleN4 = saleN3 * 0.10;
@@ -186,11 +187,11 @@ function calculate(section) {
     const transferF2 = transferFinancialFee * 0.05;
     const transferLocalAdminFee = Math.ceil(transferF1 + transferF2 + 1);
 
-    setValue(section, 'val_sale', saleFee);
+    setValue(section, 'val_sale', saleFee + (correction ? 11 : 0));
     setValue(section, 'val_transfer', saleFee);
-    setValue(section, 'val_req', 12);
-    setValue(section, 'val_financial', saleFinancialFee + transferFinancialFee);
-    setValue(section, 'val_local', saleLocalAdminFee + transferLocalAdminFee);
+    setValue(section, 'val_req', section.id === 'model5' ? 18 : 12);
+    setValue(section, 'val_financial', saleFinancialFee + (correction ? 2 : 0) + transferFinancialFee);
+    setValue(section, 'val_local', saleLocalAdminFee + (correction ? 3 : 0) + transferLocalAdminFee);
     calcTotals(section);
     return;
   }
@@ -223,10 +224,10 @@ function setValue(section, id, val) {
 
 function calcTotals(section) {
   const getVal = (id) => Math.ceil(parseFloat(getModelField(section, id).value) || 0);
-  const combinedInvoices = section.id === 'model4';
+  const combinedInvoices = section.id === 'model4' || section.id === 'model5';
   const sale = getVal('val_sale');
   const transfer = getVal('val_transfer');
-  const req = combinedInvoices ? 12 : getVal('val_req');
+  const req = combinedInvoices ? (section.id === 'model5' ? 18 : 12) : getVal('val_req');
   const stamps = combinedInvoices ? 32 : 16;
   const bonds = getVal('val_bonds') * (combinedInvoices ? 2 : 1);
   const contract = combinedInvoices ? 70 : 35;
